@@ -21,6 +21,18 @@ function numberChoices(answer, rand) {
   return shuffle([...set], rand).map(String)
 }
 
+function joinNames(names) {
+  if (names.length === 1) return `'${names[0]}'이(가)`
+  return `${names.map((n) => `'${n}'`).join(', ')}이(가) 모두`
+}
+
+/** 정답 확인: 여러 개 고르는 문제는 정답을 빠짐없이, 더 고르지 않아야 맞아요 */
+export function isCorrect(q, picked) {
+  const list = Array.isArray(picked) ? picked : [picked]
+  if (!q.multi) return list.length === 1 && q.answers.includes(list[0])
+  return list.length === q.answers.length && q.answers.every((a) => list.includes(a))
+}
+
 /** 퀴즈 문제 목록: { q, choices, answers(정답 목록), explain } */
 export function makeQuiz({ items, counts, unit }, rand = Math.random) {
   const max = Math.max(...counts)
@@ -36,17 +48,21 @@ export function makeQuiz({ items, counts, unit }, rand = Math.random) {
   })
 
   if (max !== min) {
+    const most = items.filter((_, i) => counts[i] === max)
+    const least = items.filter((_, i) => counts[i] === min)
     qs.push({
       q: '가장 많은 친구들이 고른 것은 무엇인가요?',
+      multi: true,
       choices: [...items],
-      answers: items.filter((_, i) => counts[i] === max),
-      explain: `그림의 수를 비교하면 ${max}명이 가장 많아요. 큰 그림부터 비교하면 빨라요!`,
+      answers: most,
+      explain: `${joinNames(most)} ${max}명으로 가장 많아요. 큰 그림부터 비교하면 빨라요!`,
     })
     qs.push({
       q: '가장 적은 친구들이 고른 것은 무엇인가요?',
+      multi: true,
       choices: [...items],
-      answers: items.filter((_, i) => counts[i] === min),
-      explain: `${min}명이 가장 적어요.`,
+      answers: least,
+      explain: `${joinNames(least)} ${min}명으로 가장 적어요.`,
     })
     const hi = counts.indexOf(max)
     const lo = counts.indexOf(min)

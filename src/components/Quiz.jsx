@@ -1,17 +1,26 @@
 import { useMemo, useState } from 'react'
-import { makeQuiz } from '../lib/quiz.js'
+import { isCorrect, makeQuiz } from '../lib/quiz.js'
 import { play } from '../lib/sound.js'
 
-// 그래프 읽기 퀴즈: 한 문제씩, 틀리면 힌트를 보고 다시 골라요
+// 그래프 읽기 퀴즈: 한 문제씩, 틀리면 힌트를 보고 다시 골라요.
+// '가장 많은/적은 것' 문제는 같은 수가 여러 개면 모두 골라야 정답이에요.
 export default function Quiz({ state, onStamp }) {
   const questions = useMemo(
     () => makeQuiz({ items: state.items, counts: state.counts, unit: state.unit }),
     [state.items, state.counts, state.unit],
   )
   const [n, setN] = useState(0)
-  const [picked, setPicked] = useState(null)
+  const [picked, setPicked] = useState([]) // 고른 답 목록
+  const [checked, setChecked] = useState(null) // null | 'right' | 'wrong'
   const [score, setScore] = useState(0)
   const [tries, setTries] = useState(0)
+
+  const reset = (next) => {
+    setN(next)
+    setPicked([])
+    setChecked(null)
+    setTries(0)
+  }
 
   if (n >= questions.length) {
     return (
@@ -23,10 +32,8 @@ export default function Quiz({ state, onStamp }) {
         <button
           className="btn btn-ghost"
           onClick={() => {
-            setN(0)
-            setPicked(null)
+            reset(0)
             setScore(0)
-            setTries(0)
           }}
         >
           다시 풀기
@@ -36,16 +43,33 @@ export default function Quiz({ state, onStamp }) {
   }
 
   const q = questions[n]
-  const ok = picked !== null && q.answers.includes(picked)
+  const ok = checked === 'right'
 
-  const choose = (c) => {
-    if (ok) return
-    setPicked(c)
-    const right = q.answers.includes(c)
+  const grade = (list) => {
+    const right = isCorrect(q, list)
+    setChecked(right ? 'right' : 'wrong')
     if (right && tries === 0) setScore((s) => s + 1)
     if (!right) setTries((t) => t + 1)
     play(right ? 'correct' : 'wrong', state.sound)
     if (right && n === questions.length - 1) onStamp?.()
+  }
+
+  const choose = (c) => {
+    if (ok) return
+    if (q.multi) {
+      setPicked((list) => (list.includes(c) ? list.filter((x) => x !== c) : [...list, c]))
+      setChecked(null)
+      return
+    }
+    setPicked([c])
+    grade([c])
+  }
+
+  const choiceClass = (c) => {
+    if (!picked.includes(c)) return ''
+    if (q.multi && checked === null) return 'selected'
+    if (q.multi && checked === 'wrong') return 'selected'
+    return q.answers.includes(c) ? 'right' : 'wrong'
   }
 
   return (
@@ -54,31 +78,36 @@ export default function Quiz({ state, onStamp }) {
         문제 {n + 1} / {questions.length}
       </p>
       <p className="quiz-q">Q. {q.q}</p>
+      {q.multi && <p className="quiz-multi-tip">✅ 같은 수인 것이 있으면 모두 골라요. 다 골랐으면 '정답 확인'을 눌러요.</p>}
       <div className="quiz-choices">
         {q.choices.map((c) => (
           <button
             key={c}
-            className={`chip quiz-choice ${picked === c ? (q.answers.includes(c) ? 'right' : 'wrong') : ''}`}
+            aria-pressed={q.multi ? picked.includes(c) : undefined}
+            className={`chip quiz-choice ${choiceClass(c)}`}
             onClick={() => choose(c)}
           >
+            {q.multi && <span className="quiz-box" aria-hidden="true">{picked.includes(c) ? '✔' : ''}</span>}
             {c}
           </button>
         ))}
       </div>
-      {picked !== null && (
+      {q.multi && !ok && (
+        <button className="btn btn-primary" disabled={picked.length === 0} onClick={() => grade(picked)}>
+          정답 확인
+        </button>
+      )}
+      {checked && (
         <div className={`quiz-feedback ${ok ? 'right' : 'wrong'}`} role="status">
-          {ok ? `⭕ 맞았어요! ${q.explain}` : '❌ 다시 그래프를 살펴볼까요? 그림의 수를 세어 보세요.'}
+          {ok
+            ? `⭕ 맞았어요! ${q.explain}`
+            : q.multi && picked.length < q.answers.length && picked.every((p) => q.answers.includes(p))
+              ? '🤔 거의 다 왔어요! 같은 수인 것이 더 있는지 살펴보세요.'
+              : '❌ 다시 그래프를 살펴볼까요? 그림의 수를 세어 보세요.'}
         </div>
       )}
       {ok && (
-        <button
-          className="btn btn-primary"
-          onClick={() => {
-            setN(n + 1)
-            setPicked(null)
-            setTries(0)
-          }}
-        >
+        <button className="btn btn-primary" onClick={() => reset(n + 1)}>
           {n === questions.length - 1 ? '결과 보기' : '다음 문제 →'}
         </button>
       )}

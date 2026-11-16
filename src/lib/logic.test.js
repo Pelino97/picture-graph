@@ -114,3 +114,25 @@ describe('퀴즈와 실수 찾기', () => {
     }
   })
 })
+
+import { isCorrect } from './quiz.js'
+
+describe('같은 수일 때 여러 개 고르기', () => {
+  const qs = makeQuiz({ items: ['봄', '여름', '가을', '겨울'], counts: [2, 3, 3, 1], unit: 10 })
+  const most = qs[1]
+
+  it('가장 많은 것이 둘이면 둘 다 골라야 정답', () => {
+    expect(most.multi).toBe(true)
+    expect(most.answers).toEqual(['여름', '가을'])
+    expect(isCorrect(most, ['여름'])).toBe(false)
+    expect(isCorrect(most, ['가을', '여름'])).toBe(true)
+    expect(isCorrect(most, ['여름', '가을', '봄'])).toBe(false)
+    expect(most.explain).toContain("'여름', '가을'이(가) 모두 3명")
+  })
+
+  it('하나만 가장 많으면 하나만 골라야 정답', () => {
+    const least = qs[2]
+    expect(isCorrect(least, ['겨울'])).toBe(true)
+    expect(isCorrect(least, ['겨울', '봄'])).toBe(false)
+  })
+})
