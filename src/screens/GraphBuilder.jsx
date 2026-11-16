@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import ErrorHunt from '../components/ErrorHunt.jsx'
+import Explore from '../components/Explore.jsx'
 import Icon from '../components/Icon.jsx'
+import SelfCheck from '../components/SelfCheck.jsx'
+import { useSticker } from '../components/Sticker.jsx'
 import Modal from '../components/Modal.jsx'
 import PictureGraph from '../components/PictureGraph.jsx'
 import { LIMITS, LINE_ICONS, LINE_ICON_NAMES, findTopic } from '../data/topics.js'
 import { checkGraph } from '../lib/graph.js'
+import { play } from '../lib/sound.js'
 
 const DRAG_THRESHOLD = 8
 
@@ -21,6 +27,8 @@ export default function GraphBuilder({ state, dispatch, onOpenWhiteboard }) {
   const [confirmClear, setConfirmClear] = useState(false)
   const [rowFull, setRowFull] = useState(false)
   const dragRef = useRef(null)
+  const [hunting, setHunting] = useState(false)
+  const [sticker, showSticker] = useSticker()
 
   const place = (index, kind) => {
     const row = state.rows[index]
@@ -29,6 +37,7 @@ export default function GraphBuilder({ state, dispatch, onOpenWhiteboard }) {
       return
     }
     dispatch({ type: 'place', index, kind })
+    play('place', state.sound)
   }
 
   // 손가락·마우스·전자펜 모두 같은 방식으로 끌어다 놓기 (Pointer Events)
@@ -85,7 +94,11 @@ export default function GraphBuilder({ state, dispatch, onOpenWhiteboard }) {
   const check = () => {
     const r = checkGraph({ items: state.items, counts: state.counts, rows: state.rows, unit })
     setResult(r)
-    if (r.ok) dispatch({ type: 'graphOk' })
+    play(r.ok ? 'correct' : 'wrong', state.sound)
+    if (r.ok) {
+      dispatch({ type: 'graphOk' })
+      showSticker('참 잘했어요 💮', 'stamp')
+    }
   }
 
   const total = state.counts.reduce((a, b) => a + b, 0)
@@ -137,6 +150,10 @@ export default function GraphBuilder({ state, dispatch, onOpenWhiteboard }) {
             </div>
           </section>
 
+          <button className="btn btn-ghost hunt-btn" onClick={() => setHunting(true)}>
+            🔍 연습: 그래피의 실수 찾기
+          </button>
+
           <section className="card">
             <h3 className="section-title sm">
               <span className="step">2</span> 조사 결과
@@ -161,7 +178,7 @@ export default function GraphBuilder({ state, dispatch, onOpenWhiteboard }) {
             <span className="step">3</span> 그림을 끌어다 놓아요
           </h3>
 
-          <div className={`palette ${state.iconId ? '' : 'disabled'}`}>
+          <div className={`palette ${state.iconId ? '' : 'disabled'} ${state.graphChecked ? 'unstick' : ''}`}>
             {['big', 'small'].map((kind) => (
               <button
                 key={kind}
@@ -188,7 +205,10 @@ export default function GraphBuilder({ state, dispatch, onOpenWhiteboard }) {
             hoverRow={hoverRow}
             interactive
             onRowTap={(i) => selected && state.iconId && place(i, selected)}
-            onIconTap={(i, kind) => dispatch({ type: 'remove', index: i, kind })}
+            onIconTap={(i, kind) => {
+              dispatch({ type: 'remove', index: i, kind })
+              play('minus', state.sound)
+            }}
           />
           <p className="hint">잘못 놓은 그림은 그 그림을 누르면 하나씩 빠져요.</p>
 
@@ -206,9 +226,13 @@ export default function GraphBuilder({ state, dispatch, onOpenWhiteboard }) {
 
           {state.graphChecked && (
             <div className="insight">
+              <h3 className="section-title sm">
+                <span className="step">4</span> 그래프 더 살펴보기
+              </h3>
+              <Explore state={state} onStamp={() => showSticker('퀴즈 박사 🏅', 'stamp')} />
               <label className="field">
                 <span className="section-title sm">
-                  <span className="step">4</span> 그림그래프를 보고 알게 된 점
+                  <span className="step">5</span> 그림그래프를 보고 알게 된 점
                 </span>
                 <textarea
                   className="input textarea"
@@ -222,6 +246,13 @@ export default function GraphBuilder({ state, dispatch, onOpenWhiteboard }) {
                   {state.insight.length}/{LIMITS.insight}
                 </span>
               </label>
+              <h3 className="section-title sm">
+                <span className="step">6</span> 스스로 평가해요
+              </h3>
+              <SelfCheck checks={state.selfCheck} onToggle={(i) => {
+                dispatch({ type: 'toggleSelfCheck', index: i })
+                if (!state.selfCheck[i]) play('place', state.sound)
+              }} />
               <button className="btn btn-primary btn-lg" disabled={!state.insight.trim()} onClick={onOpenWhiteboard}>
                 🖥️ 확인하기 (화이트보드로 보기)
               </button>
@@ -230,11 +261,17 @@ export default function GraphBuilder({ state, dispatch, onOpenWhiteboard }) {
         </section>
       </div>
 
-      {drag?.moved && state.iconId && (
-        <div className="drag-ghost" style={{ left: drag.x, top: drag.y }}>
-          <Icon iconId={state.iconId} size={drag.kind === 'big' ? 56 : 30} />
-        </div>
-      )}
+      {drag?.moved &&
+        state.iconId &&
+        createPortal(
+          <div className="drag-ghost" style={{ left: drag.x, top: drag.y }}>
+            <Icon iconId={state.iconId} size={drag.kind === 'big' ? 56 : 30} />
+          </div>,
+          document.body,
+        )}
+
+      {sticker}
+      {hunting && <ErrorHunt state={state} onClose={() => setHunting(false)} />}
 
       {result && (
         <Modal

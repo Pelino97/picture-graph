@@ -21,6 +21,9 @@ export const initialState = {
   history: [],
   graphChecked: false,
   insight: '',
+  selfCheck: [false, false, false, false],
+  sound: true,
+  bigText: false,
 }
 
 const clampInt = (v, min, max) => {
@@ -55,6 +58,11 @@ export function sanitize(raw) {
   }
   s.graphChecked = raw.graphChecked === true
   s.insight = cleanText(raw.insight, LIMITS.insight)
+  if (Array.isArray(raw.selfCheck) && raw.selfCheck.length === 4) {
+    s.selfCheck = raw.selfCheck.map((v) => v === true)
+  }
+  s.sound = raw.sound !== false
+  s.bigText = raw.bigText === true
   // 화면이 필요한 정보 없이 열리지 않도록 보정
   if (s.screen !== 'intro' && s.screen !== 'setup' && !isSetupComplete(s)) s.screen = 'setup'
   return s
@@ -153,6 +161,7 @@ export function reducer(state, action) {
         history: [],
         graphChecked: false,
         insight: '',
+        selfCheck: [false, false, false, false],
         screen: 'survey',
       }
     case 'vote': {
@@ -197,8 +206,16 @@ export function reducer(state, action) {
       return { ...state, graphChecked: true }
     case 'setInsight':
       return { ...state, insight: cleanText(action.text, LIMITS.insight) }
+    case 'toggleSelfCheck': {
+      const selfCheck = state.selfCheck.map((v, i) => (i === action.index ? !v : v))
+      return { ...state, selfCheck }
+    }
+    case 'toggleSound':
+      return { ...state, sound: !state.sound }
+    case 'toggleBigText':
+      return { ...state, bigText: !state.bigText }
     case 'reset':
-      return { ...initialState, screen: 'setup' }
+      return { ...initialState, screen: 'setup', sound: state.sound, bigText: state.bigText }
     default:
       return state
   }

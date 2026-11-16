@@ -81,3 +81,36 @@ describe('상태 관리', () => {
     expect(s.rows[0].big).toBe(20)
   })
 })
+
+import { makeMistake, makeQuiz } from './quiz.js'
+
+describe('퀴즈와 실수 찾기', () => {
+  const data = { items: ['가', '나', '다', '라'], counts: [12, 3, 7, 3], unit: 10 }
+
+  it('퀴즈 정답이 조사 결과와 맞는다', () => {
+    const qs = makeQuiz(data)
+    expect(qs[0].answers).toEqual(['10명'])
+    expect(qs[1].answers).toEqual(['가'])
+    expect(qs[2].answers).toEqual(['나', '라']) // 같은 수는 둘 다 정답
+    expect(qs[3].answers).toEqual(['9'])
+    expect(qs.at(-1).answers).toEqual(['25'])
+    qs.forEach((q) => q.answers.forEach((a) => expect(q.choices).toContain(a)))
+  })
+
+  it('모든 수가 같으면 많고 적음 문제는 빼요', () => {
+    const qs = makeQuiz({ ...data, counts: [2, 2, 2, 2] })
+    expect(qs).toHaveLength(2)
+  })
+
+  it('실수 찾기는 딱 한 줄만 틀리게 만든다', () => {
+    for (let k = 0; k < 50; k++) {
+      const m = makeMistake(data)
+      const wrong = m.rows
+        .map((r, i) => r.big * 10 + r.small !== data.counts[i] || r.small >= 10 || (r.big === 0 && r.small === data.counts[i] && data.counts[i] >= 10))
+        .filter(Boolean)
+      expect(wrong.length).toBe(1)
+      expect(wrong).toBeTruthy()
+      expect(m.reason).toContain(data.items[m.wrongIndex])
+    }
+  })
+})

@@ -1,7 +1,7 @@
 import Icon from './Icon.jsx'
 
 // 그림그래프 표: 왼쪽은 항목 이름, 오른쪽은 큰 그림 → 작은 그림 순서로 놓인 그림
-export default function PictureGraph({ state, hoverRow = null, interactive = false, onRowTap, onIconTap, big = 40, small = 24 }) {
+export default function PictureGraph({ state, hoverRow = null, interactive = false, onRowTap, onIconTap, big = 40, small = 24, markRow = null, markTone = '' }) {
   const { items, rows, iconId, unit, topic } = state
   return (
     <div className="pgraph">
@@ -21,8 +21,8 @@ export default function PictureGraph({ state, hoverRow = null, interactive = fal
               </th>
               <td
                 data-row={interactive ? i : undefined}
-                className={`pgraph-cell ${interactive ? 'drop' : ''} ${hoverRow === i ? 'hover' : ''}`}
-                onClick={interactive ? () => onRowTap?.(i) : undefined}
+                className={`pgraph-cell ${interactive ? 'drop' : ''} ${onRowTap && !interactive ? 'pickable' : ''} ${hoverRow === i ? 'hover' : ''} ${markRow === i ? `mark-${markTone}` : ''}`}
+                onClick={onRowTap ? () => onRowTap(i) : undefined}
               >
                 {Array.from({ length: rows[i].big }).map((_, k) => (
                   <PlacedIcon key={`b${k}`} kind="big" size={big} {...{ iconId, interactive, onIconTap, i }} />

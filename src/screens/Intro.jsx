@@ -1,6 +1,6 @@
 import Mascot from '../components/Mascot.jsx'
 
-const FRIENDS = ['#FF8FAB', '#7BC4FF', '#8FD694', '#C3A6FF']
+const FRIENDS = ['#FFB3C6', '#A8D8FF', '#B5E6C3', '#D7C8FF']
 const DEMO_ROWS = [
   { label: '🎲', n: 4 },
   { label: '🧩', n: 2 },

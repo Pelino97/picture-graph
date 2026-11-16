@@ -1,3 +1,5 @@
+import Tally from '../components/Tally.jsx'
+
 // 설문 결과 화면: 주제 + 항목별 결과 표, 조사가 끝나면 '그림그래프로 그리기' 버튼이 반짝여요
 export default function Results({ state, dispatch }) {
   const total = state.counts.reduce((a, b) => a + b, 0)
@@ -31,6 +33,15 @@ export default function Results({ state, dispatch }) {
                 <td key={i}>{c}</td>
               ))}
               <td className="td-total">{total}</td>
+            </tr>
+            <tr className="tally-row">
+              <th scope="row">바를 정(正)</th>
+              {state.counts.map((c, i) => (
+                <td key={i}>
+                  <Tally count={c} size={26} />
+                </td>
+              ))}
+              <td />
             </tr>
           </tbody>
         </table>

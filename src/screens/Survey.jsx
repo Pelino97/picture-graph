@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import Modal from '../components/Modal.jsx'
+import { useSticker } from '../components/Sticker.jsx'
+import Tally from '../components/Tally.jsx'
+import { play } from '../lib/sound.js'
 
 // 설문조사 화면: 주제 캔디바 + 2x2 항목 캔디바 + 실시간 투표자 수
 export default function Survey({ state, dispatch }) {
   const [asking, setAsking] = useState(null) // 고르려는 항목 번호
   const [notice, setNotice] = useState('')
   const [bump, setBump] = useState(null)
+  const [sticker, showSticker] = useSticker()
   const total = state.counts.reduce((a, b) => a + b, 0)
   const target = state.target || null
   const full = target !== null && total >= target
@@ -13,9 +17,12 @@ export default function Survey({ state, dispatch }) {
   const add = (i) => {
     if (full) {
       setNotice(`조사할 친구 ${target}명이 모두 투표했어요! 숫자를 고치려면 − 버튼을 먼저 눌러 주세요.`)
+      play('wrong', state.sound)
       return
     }
     dispatch({ type: 'vote', index: i, delta: 1 })
+    play('pop', state.sound)
+    showSticker()
     setBump(i)
     setTimeout(() => setBump(null), 450)
   }
@@ -35,13 +42,17 @@ export default function Survey({ state, dispatch }) {
                 {state.counts[i]}
                 <small>명</small>
               </span>
+              <Tally count={state.counts[i]} className="vote-tally" />
             </button>
             <div className="vote-adjust">
               <button
                 className="round-btn"
                 aria-label={`${name} 한 명 빼기`}
                 disabled={state.counts[i] === 0}
-                onClick={() => dispatch({ type: 'vote', index: i, delta: -1 })}
+                onClick={() => {
+                  dispatch({ type: 'vote', index: i, delta: -1 })
+                  play('minus', state.sound)
+                }}
               >
                 −
               </button>
@@ -91,6 +102,8 @@ export default function Survey({ state, dispatch }) {
           <p className={`modal-choice c${asking}`}>{state.items[asking]}</p>
         </Modal>
       )}
+
+      {sticker}
 
       {notice && (
         <Modal

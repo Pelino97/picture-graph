@@ -44,7 +44,7 @@ export default function App() {
   const stepIndex = STEPS.findIndex((s) => s.screen === state.screen)
 
   return (
-    <div className="app">
+    <div className={`app ${state.bigText ? 'big-text' : ''}`}>
       <header className="topbar">
         <button className="brand" onClick={() => dispatch({ type: 'go', screen: 'intro' })} aria-label="처음 화면으로">
           📊 그림 그래프 그리기
@@ -59,6 +59,22 @@ export default function App() {
         </ol>
         <div className="topbar-right">
           {state.group && <span className="group-badge">{state.group}조</span>}
+          <button
+            className="btn btn-ghost btn-sm icon-toggle"
+            aria-pressed={state.sound}
+            aria-label={state.sound ? '소리 끄기' : '소리 켜기'}
+            onClick={() => dispatch({ type: 'toggleSound' })}
+          >
+            {state.sound ? '🔊' : '🔇'}
+          </button>
+          <button
+            className="btn btn-ghost btn-sm icon-toggle"
+            aria-pressed={state.bigText}
+            aria-label={state.bigText ? '보통 글씨로' : '큰 글씨로'}
+            onClick={() => dispatch({ type: 'toggleBigText' })}
+          >
+            {state.bigText ? '가-' : '가+'}
+          </button>
           <button className="btn btn-ghost btn-sm" onClick={() => setConfirmReset(true)}>
             새로 시작
           </button>
