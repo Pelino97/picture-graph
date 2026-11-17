@@ -1,4 +1,5 @@
 import Mascot from '../components/Mascot.jsx'
+import OwnerBadge from '../components/TigerT.jsx'
 
 const FRIENDS = ['#FFB3C6', '#A8D8FF', '#B5E6C3', '#D7C8FF']
 const DEMO_ROWS = [
@@ -63,6 +64,7 @@ export default function Intro({ onStart, canResume, onResume }) {
           </button>
         )}
       </div>
+      <OwnerBadge size={40} className="intro-owner pop-in" />
     </main>
   )
 }

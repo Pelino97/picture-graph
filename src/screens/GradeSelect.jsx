@@ -1,4 +1,5 @@
 import Mascot from '../components/Mascot.jsx'
+import OwnerBadge from '../components/TigerT.jsx'
 
 // 학년 고르기: 3학년은 그림그래프, 4학년은 꺾은선그래프
 export default function GradeSelect({ dispatch, current }) {
@@ -42,6 +43,7 @@ export default function GradeSelect({ dispatch, current }) {
           {current === 4 && <span className="grade-now">하던 활동</span>}
         </button>
       </div>
+      <OwnerBadge size={36} />
     </main>
   )
 }

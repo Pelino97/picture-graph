@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import Chart from '../components/Chart.jsx'
 import Mascot from '../components/Mascot.jsx'
 import PictureGraph from '../components/PictureGraph.jsx'
+import OwnerBadge from '../components/TigerT.jsx'
 import { LINE_SELF_CHECKS, SELF_CHECKS } from '../data/selfCheck.js'
 import { downloadBlob, fileName, makeLineImage, makeWhiteboardImage } from '../lib/exportImage.js'
 import { toolScale } from '../lib/lineLogic.js'
@@ -128,6 +129,7 @@ export default function Whiteboard({ state, onClose }) {
           <p className="wb-self">
             스스로 평가 {'🌸⭐🍀💖'.match(/./gu).slice(0, done).join('')} {done}/{total}
           </p>
+          <OwnerBadge size={30} label="made by" className="wb-owner" />
           <div className="wb-mascot">
             <Mascot size={120} />
           </div>

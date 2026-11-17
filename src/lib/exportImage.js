@@ -107,6 +107,19 @@ function drawBackdrop(ctx, W, H) {
   ].forEach(([x, y, e]) => ctx.fillText(e, x, y))
 }
 
+/** 맨 아래 오른쪽: 만든 사람 TigerT */
+async function drawOwner(ctx, rootEl, W, y) {
+  const icon = await loadSvg(rootEl?.querySelector('svg.tiger-icon'), 52, 52)
+  ctx.font = `28px ${FONT}`
+  ctx.fillStyle = '#9A8577'
+  ctx.textAlign = 'right'
+  ctx.textBaseline = 'middle'
+  const text = 'made by TigerT'
+  ctx.fillText(text, W - 90, y)
+  if (icon) ctx.drawImage(icon, W - 90 - ctx.measureText(text).width - 62, y - 26, 52, 52)
+  ctx.textAlign = 'left'
+}
+
 /** 화면의 SVG(캐릭터, 그래프)를 그림으로 바꿔요 */
 function loadSvg(svgEl, w, h) {
   return new Promise((resolve) => {
@@ -211,6 +224,7 @@ export async function makeLineImage(state, rootEl, checksTotal) {
   ctx.fillStyle = '#9A8577'
   const done = line.selfCheck.filter(Boolean).length
   ctx.fillText(`스스로 평가 ${done}/${checksTotal}  ·  꺾은선그래프 그리기`, pad, y)
+  await drawOwner(ctx, rootEl, W, y)
   return toPng(canvas)
 }
 
@@ -338,6 +352,7 @@ export async function makeWhiteboardImage(state, rootEl) {
   ctx.font = `28px ${FONT}`
   ctx.fillStyle = '#9A8577'
   ctx.fillText(`스스로 평가 ${checksDone}/${SELF_CHECKS.length}  ·  그림 그래프 그리기`, pad, y)
+  await drawOwner(ctx, rootEl, W, y)
 
   return toPng(canvas)
 }

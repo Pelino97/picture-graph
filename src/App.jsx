@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useReducer, useState } from 'react'
 import Modal from './components/Modal.jsx'
+import { OWNER, TigerIcon } from './components/TigerT.jsx'
 import { clearSaved, groupLabel, loadState, reducer, saveState } from './lib/state.js'
 import GradeSelect from './screens/GradeSelect.jsx'
 import DrawLab from './screens/line/DrawLab.jsx'
@@ -66,6 +67,10 @@ export default function App() {
         <button className="brand" onClick={() => dispatch({ type: 'go', screen: 'intro' })} aria-label="처음 화면으로">
           {state.screen === 'grade' ? '📊 그래프 그리기' : isLine ? '📈 꺾은선그래프' : '📊 그림 그래프'}
         </button>
+        <span className="brand-owner" title={`만든 사람 ${OWNER}`}>
+          <TigerIcon size={26} />
+          <span>{OWNER}</span>
+        </span>
         <ol className="stepper" aria-label="활동 단계">
           {STEPS.map((s, i) => (
             <li key={s.screen} className={i === stepIndex ? 'now' : i < stepIndex ? 'done' : ''}>
