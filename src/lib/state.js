@@ -1,15 +1,22 @@
 import { LIMITS, LINE_ICONS, findTopic, GROUPS } from '../data/topics.js'
+import { initialLine, lineReducer, lineSetupErrors, lineTableErrors, sanitizeLine } from './lineLogic.js'
 
 // 수업 데이터는 이 브라우저 안(localStorage)에만 저장해요. 서버로 보내지 않아요.
 const STORAGE_KEY = 'picture-graph-v1'
-const SCREENS = ['intro', 'setup', 'survey', 'results', 'graph']
+const SCREENS3 = ['setup', 'survey', 'results', 'graph']
+const SCREENS4 = ['l-setup', 'l-table', 'l-draw', 'l-tool', 'l-review']
+const SCREENS = ['intro', 'grade', ...SCREENS3, ...SCREENS4]
+export const GROUP_NAME_MAX = 12
 const UNITS = [5, 10]
 
 export const emptyRows = () => [0, 1, 2, 3].map(() => ({ big: 0, small: 0 }))
 
 export const initialState = {
   screen: 'intro',
+  grade: null, // 3: 그림그래프, 4: 꺾은선그래프
+  groupMode: 'number', // 'number'(1~8조) | 'name'(모둠 이름 쓰기)
   group: null,
+  groupName: '',
   topicId: null,
   topic: '',
   items: ['', '', '', ''],
@@ -24,6 +31,13 @@ export const initialState = {
   selfCheck: [false, false, false, false],
   sound: true,
   bigText: false,
+  line: initialLine,
+}
+
+/** 화면에 보여 줄 모둠 이름: '3조' 또는 직접 쓴 이름 */
+export function groupLabel(s) {
+  if (s.groupMode === 'name') return s.groupName.trim()
+  return s.group ? `${s.group}조` : ''
 }
 
 const clampInt = (v, min, max) => {
@@ -38,7 +52,10 @@ export function sanitize(raw) {
   if (!raw || typeof raw !== 'object') return { ...initialState }
   const s = { ...initialState }
   if (SCREENS.includes(raw.screen)) s.screen = raw.screen
+  if (raw.grade === 3 || raw.grade === 4) s.grade = raw.grade
+  if (raw.groupMode === 'name') s.groupMode = 'name'
   if (GROUPS.includes(raw.group)) s.group = raw.group
+  s.groupName = cleanText(raw.groupName, GROUP_NAME_MAX)
   if (typeof raw.topicId === 'string' && findTopic(raw.topicId)) s.topicId = raw.topicId
   s.topic = cleanText(raw.topic, LIMITS.topic)
   if (Array.isArray(raw.items) && raw.items.length === 4) {
@@ -63,8 +80,14 @@ export function sanitize(raw) {
   }
   s.sound = raw.sound !== false
   s.bigText = raw.bigText === true
+  s.line = sanitizeLine(raw.line)
   // 화면이 필요한 정보 없이 열리지 않도록 보정
-  if (s.screen !== 'intro' && s.screen !== 'setup' && !isSetupComplete(s)) s.screen = 'setup'
+  if (SCREENS3.includes(s.screen) && s.grade !== 3) s.screen = 'grade'
+  if (SCREENS4.includes(s.screen) && s.grade !== 4) s.screen = 'grade'
+  if (SCREENS3.includes(s.screen) && s.screen !== 'setup' && !isSetupComplete(s)) s.screen = 'setup'
+  const i4 = SCREENS4.indexOf(s.screen)
+  if (i4 > 0 && lineStartErrors(s).length) s.screen = 'l-setup'
+  else if (i4 > 1 && lineTableErrors(s.line).length) s.screen = 'l-table'
   return s
 }
 
@@ -79,12 +102,19 @@ export function isValidIconId(id) {
 
 export function setupErrors(s) {
   const errors = []
-  if (!s.group) errors.push('우리 모둠을 골라 주세요.')
+  if (!groupLabel(s)) errors.push(s.groupMode === 'name' ? '우리 모둠 이름을 써 주세요.' : '우리 모둠을 골라 주세요.')
   if (!s.topic.trim()) errors.push('조사 주제를 정해 주세요.')
   const names = s.items.map((v) => v.trim())
   if (names.some((v) => !v)) errors.push('조사 항목 4가지를 모두 써 주세요.')
   else if (new Set(names).size !== 4) errors.push('조사 항목이 서로 겹치지 않게 써 주세요.')
   return errors
+}
+
+/** 4학년: 모둠 + 주제 + 가로·세로 이름 */
+export function lineStartErrors(s) {
+  const e = []
+  if (!groupLabel(s)) e.push(s.groupMode === 'name' ? '우리 모둠 이름을 써 주세요.' : '우리 모둠을 골라 주세요.')
+  return [...e, ...lineSetupErrors(s.line)]
 }
 
 export function isSetupComplete(s) {
@@ -122,7 +152,16 @@ export function clearSaved() {
 }
 
 export function reducer(state, action) {
+  if (typeof action.type === 'string' && action.type.startsWith('line/')) {
+    return { ...state, line: lineReducer(state.line, action) }
+  }
   switch (action.type) {
+    case 'setGrade':
+      return { ...state, grade: action.grade, screen: action.grade === 4 ? 'l-setup' : 'setup' }
+    case 'setGroupMode':
+      return { ...state, groupMode: action.mode === 'name' ? 'name' : 'number' }
+    case 'setGroupName':
+      return { ...state, groupName: cleanText(action.text, GROUP_NAME_MAX) }
     case 'go':
       if (action.screen === 'intro') return { ...state, screen: 'intro', resumeScreen: state.screen }
       return { ...state, screen: action.screen }
@@ -215,7 +254,7 @@ export function reducer(state, action) {
     case 'toggleBigText':
       return { ...state, bigText: !state.bigText }
     case 'reset':
-      return { ...initialState, screen: 'setup', sound: state.sound, bigText: state.bigText }
+      return { ...initialState, screen: 'grade', sound: state.sound, bigText: state.bigText }
     default:
       return state
   }

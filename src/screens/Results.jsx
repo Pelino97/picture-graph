@@ -1,3 +1,4 @@
+import { groupLabel } from '../lib/state.js'
 import Tally from '../components/Tally.jsx'
 
 // 설문 결과 화면: 주제 + 항목별 결과 표, 조사가 끝나면 '그림그래프로 그리기' 버튼이 반짝여요
@@ -14,7 +15,7 @@ export default function Results({ state, dispatch }) {
 
       <div className="card">
         <table className="result-table">
-          <caption>{state.group}조 설문 결과</caption>
+          <caption>{groupLabel(state)} 설문 결과</caption>
           <thead>
             <tr>
               <th scope="col">항목</th>

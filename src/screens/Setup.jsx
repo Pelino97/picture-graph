@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { GROUPS, LIMITS, RECOMMENDED_TOPICS } from '../data/topics.js'
+import GroupPicker from '../components/GroupPicker.jsx'
+import { LIMITS, RECOMMENDED_TOPICS } from '../data/topics.js'
 import { setupErrors } from '../lib/state.js'
 
 // 메인 화면: 모둠 고르기 → 주제 고르기(추천 또는 직접 쓰기) → 항목 4가지 → 설문 시작
 export default function Setup({ state, dispatch }) {
-  const [mode, setMode] = useState(state.topicId || !state.topic ? 'recommend' : 'custom')
+  // 직접 정하기가 먼저예요. 추천 주제는 탭을 눌러야 보여요.
+  const [mode, setMode] = useState(state.topicId ? 'recommend' : 'custom')
   const [showErrors, setShowErrors] = useState(false)
   const errors = setupErrors(state)
 
@@ -22,19 +24,7 @@ export default function Setup({ state, dispatch }) {
         <h2 className="section-title">
           <span className="step">1</span> 우리 모둠은?
         </h2>
-        <div className="group-grid" role="radiogroup" aria-label="모둠 선택">
-          {GROUPS.map((g) => (
-            <button
-              key={g}
-              role="radio"
-              aria-checked={state.group === g}
-              className={`chip chip-group ${state.group === g ? 'selected' : ''}`}
-              onClick={() => dispatch({ type: 'setGroup', group: g })}
-            >
-              {g}조
-            </button>
-          ))}
-        </div>
+        <GroupPicker state={state} dispatch={dispatch} />
       </section>
 
       <section className="card">
@@ -42,14 +32,6 @@ export default function Setup({ state, dispatch }) {
           <span className="step">2</span> 조사 주제 정하기
         </h2>
         <div className="tabs" role="tablist">
-          <button
-            role="tab"
-            aria-selected={mode === 'recommend'}
-            className={`tab ${mode === 'recommend' ? 'active' : ''}`}
-            onClick={() => setMode('recommend')}
-          >
-            ⭐ 추천 주제
-          </button>
           <button
             role="tab"
             aria-selected={mode === 'custom'}
@@ -61,9 +43,19 @@ export default function Setup({ state, dispatch }) {
           >
             ✏️ 직접 정하기
           </button>
+          <button
+            role="tab"
+            aria-selected={mode === 'recommend'}
+            className={`tab ${mode === 'recommend' ? 'active' : ''}`}
+            onClick={() => setMode('recommend')}
+          >
+            ⭐ 추천 주제
+          </button>
         </div>
 
         {mode === 'recommend' ? (
+          <>
+          <p className="hint">마음에 드는 주제를 누르면 예시 항목이 채워져요. 고쳐 써도 돼요.</p>
           <div className="topic-list">
             {RECOMMENDED_TOPICS.map((t) => (
               <button
@@ -78,6 +70,7 @@ export default function Setup({ state, dispatch }) {
               </button>
             ))}
           </div>
+          </>
         ) : (
           <label className="field">
             <span className="field-label">우리 모둠이 조사할 주제를 써 보세요.</span>

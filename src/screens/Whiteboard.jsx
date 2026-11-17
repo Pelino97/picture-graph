@@ -1,7 +1,11 @@
+import { groupLabel } from '../lib/state.js'
 import { useEffect, useRef, useState } from 'react'
+import Chart from '../components/Chart.jsx'
+import Mascot from '../components/Mascot.jsx'
 import PictureGraph from '../components/PictureGraph.jsx'
-import { SELF_CHECKS } from '../data/selfCheck.js'
-import { downloadBlob, makeWhiteboardImage } from '../lib/exportImage.js'
+import { LINE_SELF_CHECKS, SELF_CHECKS } from '../data/selfCheck.js'
+import { downloadBlob, fileName, makeLineImage, makeWhiteboardImage } from '../lib/exportImage.js'
+import { toolScale } from '../lib/lineLogic.js'
 
 const isFull = () => !!(document.fullscreenElement || document.webkitFullscreenElement)
 
@@ -20,6 +24,8 @@ export default function Whiteboard({ state, onClose }) {
   const ref = useRef(null)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
+  const isLine = state.grade === 4
+  const line = state.line
 
   useEffect(() => {
     const el = ref.current
@@ -45,8 +51,10 @@ export default function Whiteboard({ state, onClose }) {
     setSaving(true)
     setMsg('')
     try {
-      const blob = await makeWhiteboardImage(state, ref.current)
-      downloadBlob(blob, `picture-graph-group${state.group}.png`)
+      const blob = isLine
+        ? await makeLineImage(state, ref.current, LINE_SELF_CHECKS.length)
+        : await makeWhiteboardImage(state, ref.current)
+      downloadBlob(blob, fileName(state, isLine ? 'line-graph' : 'picture-graph'))
       setMsg('그림을 저장했어요! (다운로드 폴더를 확인해 주세요)')
     } catch {
       setMsg('이 기기에서는 그림 저장이 어려워요. 인쇄 버튼을 이용해 주세요.')
@@ -60,10 +68,19 @@ export default function Whiteboard({ state, onClose }) {
     setTimeout(() => window.print(), 300)
   }
 
-  const done = state.selfCheck.filter(Boolean).length
+  const checks = isLine ? line.selfCheck : state.selfCheck
+  const total = isLine ? LINE_SELF_CHECKS.length : SELF_CHECKS.length
+  const done = checks.filter(Boolean).length
+  const tool = line.tool
 
   return (
-    <div ref={ref} className="whiteboard" role="dialog" aria-modal="true" aria-label="화이트보드">
+    <div ref={ref} className={`whiteboard ${isLine ? 'wb-line' : ''}`} role="dialog" aria-modal="true" aria-label="화이트보드">
+      <div className="wb-deco" aria-hidden="true">
+        <span className="deco d1">🌸</span>
+        <span className="deco d2">⭐</span>
+        <span className="deco d3">🍀</span>
+        <span className="deco d4">💖</span>
+      </div>
       <div className="wb-tools no-print">
         <button className="btn btn-ghost" onClick={save} disabled={saving}>
           {saving ? '만드는 중…' : '🖼️ 그림으로 저장'}
@@ -81,19 +98,39 @@ export default function Whiteboard({ state, onClose }) {
         </p>
       )}
       <header className="wb-head">
-        <span className="wb-group">{state.group}조</span>
-        <h1>{state.topic}</h1>
+        <span className="wb-group">{groupLabel(state)}</span>
+        <h1>{isLine ? line.topic : state.topic}</h1>
       </header>
       <div className="wb-body">
         <div className="wb-graph">
-          <PictureGraph state={state} big={52} small={30} />
+          {isLine ? (
+            <Chart
+              type={tool.type}
+              labels={line.labels}
+              values={line.values.map(Number)}
+              scale={toolScale(line)}
+              xName={line.xName}
+              xUnit={line.xUnit}
+              yName={line.yName}
+              yUnit={line.yUnit}
+              title={tool.title || line.draw.title || line.topic}
+              color={tool.color}
+              showValues={tool.showValues}
+              showChange={tool.showChange}
+            />
+          ) : (
+            <PictureGraph state={state} big={52} small={30} />
+          )}
         </div>
         <div className="wb-note">
           <h2>✏️ 알게 된 점</h2>
-          <p>{state.insight}</p>
+          <p>{isLine ? line.insight : state.insight}</p>
           <p className="wb-self">
-            스스로 평가 {'🌸⭐🍀💖'.match(/./gu).slice(0, done).join('')} {done}/{SELF_CHECKS.length}
+            스스로 평가 {'🌸⭐🍀💖'.match(/./gu).slice(0, done).join('')} {done}/{total}
           </p>
+          <div className="wb-mascot">
+            <Mascot size={120} />
+          </div>
         </div>
       </div>
     </div>
